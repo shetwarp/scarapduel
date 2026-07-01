@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -174,6 +175,13 @@ tr.me{background:var(--panel-2);color:var(--accent);}
 #btn-weapon{width:52px;height:52px;right:108px;bottom:100px;font-size:12px;}
 @media (pointer:coarse){#touch-controls{display:block;} .hint-desktop{display:none;}}
 @media (pointer:fine){.hint-mobile{display:none;}}
+/* Mobile: joystick on RIGHT, fire/jet buttons on LEFT for landscape play */
+@media (pointer:coarse) {
+  .joy-zone { left: auto !important; right: 22px; }
+  #btn-fire { right: auto !important; left: 26px; bottom: 34px; }
+  #btn-jump { right: auto !important; left: 120px; bottom: 20px; }
+  #btn-weapon { right: auto !important; left: 108px; bottom: 100px; }
+}
 
 @media (max-width:760px){
   .menu-body{flex-direction:column;}
@@ -442,6 +450,8 @@ let currentUser = null;
 let peer = null;
 let hostConnections = [];
 let clientConn = null;
+let isOnlineGame = false;
+let remotePlayers = {}; // peerId -> entity (simple P2P ghost players)
 
 /* =========================================================
    SCREEN NAVIGATION
@@ -664,8 +674,34 @@ function showOnlineScreen(){
       const playerNum = hostConnections.length;
       log('بازیکن #' + playerNum + ' وصل شد! (مجموع: ' + playerNum + ')');
 
-      c.on('data', data => log('از بازیکن #' + playerNum + ': ' + data));
-      c.on('close', () => log('بازیکن #' + playerNum + ' قطع شد.'));
+      c.on('data', data => {
+        try {
+          if (typeof data === 'string' && data.startsWith('{')) {
+            const msg = JSON.parse(data);
+            if (msg.type === 'player-state' && remotePlayers[c.peer]) {
+              updateRemotePlayer(c.peer, msg);
+            }
+          } else {
+            log('از بازیکن #' + playerNum + ': ' + data);
+          }
+        } catch(e) { log('از بازیکن #' + playerNum + ': ' + data); }
+      });
+      c.on('close', () => {
+        log('بازیکن #' + playerNum + ' قطع شد.');
+        if (remotePlayers[c.peer]) delete remotePlayers[c.peer];
+      });
+
+      // Show START button for host (only once)
+      if (!document.getElementById('btn-start-online') && hostConnections.length >= 1) {
+        const startBtn = document.createElement('button');
+        startBtn.id = 'btn-start-online';
+        startBtn.className = 'btn primary';
+        startBtn.style.cssText = 'margin:20px 0 10px; width:100%; font-size:22px; padding:14px;';
+        startBtn.innerHTML = '🚀 شروع بازی آنلاین';
+        startBtn.onclick = startOnlineAsHost;
+        status.appendChild(startBtn);
+        log('دکمه شروع بازی ظاهر شد — وقتی آماده بودی بزن!');
+      }
 
       setTimeout(() => { 
         try { c.send('خوش آمدید به SCRAP DUEL آنلاین!'); } catch(e){} 
@@ -692,12 +728,116 @@ function showOnlineScreen(){
         clientConn.send('سلام! من وارد شدم.');
       });
 
-      clientConn.on('data', data => log('پیام از هاست: ' + data));
+      clientConn.on('data', data => {
+        try {
+          if (typeof data === 'string' && data.startsWith('{')) {
+            const msg = JSON.parse(data);
+            if (msg.type === 'start-match') {
+              log('هاست بازی را شروع کرد!');
+              startOnlineMatch(false);
+            } else if (msg.type === 'player-state') {
+              updateRemotePlayer('host', msg);
+            } else {
+              log('پیام از هاست: ' + data);
+            }
+          } else {
+            log('پیام از هاست: ' + data);
+          }
+        } catch(e) {
+          log('پیام از هاست: ' + data);
+        }
+      });
       clientConn.on('close', () => log('اتصال به هاست قطع شد.'));
 
       peer.on('error', err => log('خطا: ' + err.type));
     });
   };
+}
+
+/* ================== ONLINE MULTIPLAYER START ================== */
+function startOnlineAsHost() {
+  if (hostConnections.length === 0) {
+    alert('حداقل یک بازیکن باید وصل باشد!');
+    return;
+  }
+  const startMsg = JSON.stringify({ type: 'start-match', mode: 'duel' });
+  hostConnections.forEach((c, idx) => {
+    try { 
+      c.send(startMsg); 
+      log('شروع بازی به بازیکن #' + (idx+1) + ' ارسال شد');
+    } catch(e){}
+  });
+  startOnlineMatch(true);
+}
+
+function startOnlineMatch(isHost) {
+  isOnlineGame = true;
+  remotePlayers = {};
+  showScreen('screen-game');
+
+  startMatch({ mode: 'duel', bots: 0 });
+
+  const remoteColor = '#e5473d';
+  const remoteX = isHost ? 1800 : 300;
+  const remoteId = isHost ? 'client-1' : 'host';
+  
+  const remote = newEntity(remoteX, remoteColor);
+  remote.isRemote = true;
+  remote.weapon = 'pistol';
+  remote.ammo = {smg:999, shotgun:999, sniper:999};
+  remotePlayers[remoteId] = remote;
+
+  if (isHost && hostConnections.length > 0) {
+    const firstConn = hostConnections[0];
+    remotePlayers[firstConn.peer || 'client-1'] = remote;
+  }
+
+  addKillFeed(isHost ? 'شما هاست هستید — منتظر حریف' : 'به بازی آنلاین وصل شدید!');
+
+  if (!window._onlineSyncInterval) {
+    window._onlineSyncInterval = setInterval(() => {
+      if (!isOnlineGame || !matchActive || !player || !player.alive) return;
+      sendPlayerState();
+    }, 80);
+  }
+}
+
+function sendPlayerState() {
+  if (!player || !player.alive || !isOnlineGame) return;
+  const state = {
+    type: 'player-state',
+    x: player.x,
+    y: player.y,
+    vx: player.vx,
+    vy: player.vy,
+    health: player.health,
+    facing: player.facing,
+    weapon: player.weapon,
+    lastShot: player.lastShot
+  };
+  const msg = JSON.stringify(state);
+
+  if (hostConnections.length > 0) {
+    hostConnections.forEach(c => {
+      try { c.send(msg); } catch(e){}
+    });
+  } else if (clientConn) {
+    try { clientConn.send(msg); } catch(e){}
+  }
+}
+
+function updateRemotePlayer(peerId, msg) {
+  let remote = remotePlayers[peerId];
+  if (!remote) {
+    remote = newEntity(msg.x || 1500, '#e5473d');
+    remote.isRemote = true;
+    remotePlayers[peerId] = remote;
+  }
+  if (typeof msg.x === 'number') remote.x = msg.x;
+  if (typeof msg.y === 'number') remote.y = msg.y;
+  if (typeof msg.health === 'number') remote.health = msg.health;
+  if (typeof msg.facing === 'number') remote.facing = msg.facing;
+  if (msg.weapon) remote.weapon = msg.weapon;
 }
 
 let threeScene, threeCamera, threeRenderer, threePlayer, threeBot, threeKeys = {};
@@ -1171,7 +1311,7 @@ function update(dt, now){
       if(bl.x>p.x && bl.x<p.x+p.w && bl.y>p.y && bl.y<p.y+p.h){ hit=true; break; }
     }
     // entity collision
-    const targets = [player, ...bots].filter(e=>e.alive && e!==bl.owner);
+    const targets = [player, ...bots, ...Object.values(remotePlayers)].filter(e=>e && e.alive && e!==bl.owner);
     for(const t of targets){
       if(bl.x>t.x && bl.x<t.x+t.w && bl.y>t.y && bl.y<t.y+t.h){
         const ownerIsPlayer = bl.owner.isPlayer;
@@ -1231,6 +1371,12 @@ function fmtTime(t){
 
 function endMatch(won){
   matchActive = false;
+  isOnlineGame = false;
+  if (window._onlineSyncInterval) {
+    clearInterval(window._onlineSyncInterval);
+    window._onlineSyncInterval = null;
+  }
+  remotePlayers = {};
   if(won && mode!=='survival'){ currentUser.missionProgress['headshotless'] = player.matchDeaths===0 ? 1 : (currentUser.missionProgress['headshotless']||0); }
   checkMissionRewards();
   const ov = document.getElementById('end-overlay');
@@ -1302,6 +1448,10 @@ function draw(){
 
   // entities
   [player, ...bots].forEach(ent=> drawEntity(ent));
+  // remote online players (ghosts)
+  Object.values(remotePlayers).forEach(ent => {
+    if (ent && ent.alive) drawEntity(ent);
+  });
 
   // bullets
   bullets.forEach(bl=>{
@@ -1327,9 +1477,14 @@ function drawEntity(ent){
   let accent = skin.accent || '#c6ff5e';
   let bodyColor = skin.color || ent.color;
   const isEnemy = !!ent.isBot;
+  const isRemote = !!ent.isRemote;
   if(isEnemy){
     accent = '#ff4444'; // enemy red accent - clearly different from player skins
     bodyColor = ent.color; // keep their unique enemy color
+  }
+  if(isRemote){
+    accent = '#ffaa00'; // orange glow for online opponent
+    bodyColor = ent.color || '#c23a2f';
   }
 
   ctx.save();
