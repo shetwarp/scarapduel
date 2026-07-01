@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SCRAP DUEL — آرنای مبارزه</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#12150e;
+  --panel:#1b2015;
+  --panel-2:#20261a;
+  --line:#333c28;
+  --accent:#c6ff5e;
+  --accent-dark:#8fd93a;
+  --danger:#e5473d;
+  --warn:#e8862c;
+  --sand:#d9c9a3;
+  --steel:#6d93bd;
+  --text:#eef0e6;
+  --muted:#8c9480;
+  --radius:2px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:'Vazirmatn',sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none;}
+#app{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;background:
+  radial-gradient(1200px 800px at 80% -10%, #232b1a 0%, transparent 60%),
+  linear-gradient(180deg,#171b11 0%, #12150e 100%);}
+
+.eyebrow{font-family:'JetBrains Mono',monospace;letter-spacing:.22em;font-size:11px;color:var(--accent);text-transform:uppercase;}
+.display{font-family:'Teko',sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase;}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+.screen{position:absolute;inset:0;display:none;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ---------- shared bits ---------- */
+.stencil-border{border:1px solid var(--line);position:relative;}
+.stencil-border::before{content:'';position:absolute;top:-1px;right:-1px;width:14px;height:14px;border-top:2px solid var(--accent);border-right:2px solid var(--accent);}
+.stencil-border::after{content:'';position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-bottom:2px solid var(--accent);border-left:2px solid var(--accent);}
+
+.btn{
+  font-family:'Teko',sans-serif;font-weight:600;font-size:22px;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--panel-2);color:var(--text);border:1px solid var(--line);padding:12px 22px;cursor:pointer;
+  transition:.15s ease; text-align:center;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);color:#141810;border-color:var(--accent);}
+.btn.primary:hover{background:var(--accent-dark);color:#141810;}
+.btn.danger{border-color:var(--danger);color:var(--danger);}
+.btn.danger:hover{background:var(--danger);color:#171100;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn.small{font-size:16px;padding:7px 14px;}
+
+input[type=text],input[type=password]{
+  background:#0e1109;border:1px solid var(--line);color:var(--text);padding:11px 12px;font-family:'JetBrains Mono',monospace;
+  font-size:14px;width:100%;outline:none;
+}
+input:focus{border-color:var(--accent);}
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-thumb{background:var(--line);}
+
+/* ---------- AUTH ---------- */
+#screen-auth{align-items:center;justify-content:center;padding:20px;}
+.auth-box{width:360px;max-width:92vw;background:var(--panel);padding:34px 28px 28px;}
+.auth-logo{text-align:center;margin-bottom:18px;}
+.auth-logo .display{font-size:46px;line-height:1;color:var(--text);}
+.auth-logo .display span{color:var(--accent);}
+.auth-logo .eyebrow{display:block;text-align:center;margin-top:4px;}
+.tabs{display:flex;margin-bottom:20px;border:1px solid var(--line);}
+.tab{flex:1;text-align:center;padding:9px 0;cursor:pointer;font-family:'Teko',sans-serif;font-size:18px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+.tab.active{background:var(--accent);color:#141810;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;}
+.auth-note{margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.8;border-top:1px dashed var(--line);padding-top:12px;}
+.auth-error{color:var(--danger);font-size:12.5px;min-height:16px;margin-top:8px;font-family:'JetBrains Mono',monospace;}
+
+/* ---------- MENU ---------- */
+#screen-menu{padding:26px 30px;}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand .display{font-size:32px;}
+.brand .display span{color:var(--accent);}
+.playercard{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);padding:8px 16px;}
+.playercard .name{font-family:'Teko',sans-serif;font-size:20px;letter-spacing:.03em;}
+.playercard .scrap{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:14px;}
+.tag{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+.menu-body{flex:1;display:flex;gap:24px;margin-top:24px;min-height:0;}
+.menu-left{flex:1.3;display:flex;flex-direction:column;gap:14px;}
+.mode-card{background:var(--panel);border:1px solid var(--line);padding:20px 22px;cursor:pointer;transition:.15s;position:relative;overflow:hidden;}
+.mode-card:hover{border-color:var(--accent);}
+.mode-card.selected{border-color:var(--accent);background:var(--panel-2);}
+.mode-card .mtitle{font-family:'Teko',sans-serif;font-size:28px;letter-spacing:.03em;color:var(--text);}
+.mode-card .msub{font-size:12.5px;color:var(--muted);margin-top:3px;}
+.mode-card .mtag{position:absolute;top:14px;left:16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.1em;}
+
+.map-btn.active { border-color: var(--accent); background: var(--panel-2); color: var(--accent); }
+
+.menu-actions{display:flex;gap:10px;margin-top:auto;flex-wrap:wrap;}
+.menu-right{flex:1;display:flex;flex-direction:column;gap:14px;}
+.panel-mini{background:var(--panel);border:1px solid var(--line);padding:16px 18px;flex:1;min-height:0;display:flex;flex-direction:column;}
+.panel-mini h3{margin:0 0 10px;font-family:'Teko',sans-serif;font-size:20px;letter-spacing:.04em;color:var(--accent);}
+.mission-row{display:flex;justify-content:space-between;font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--line);color:var(--muted);}
+.mission-row b{color:var(--text);font-weight:500;}
+.mission-row .reward{color:var(--accent);font-family:'JetBrains Mono',monospace;}
+
+/* ---------- SHOP ---------- */
+#screen-shop{padding:24px 30px;overflow-y:auto;}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:16px;}
+.item-card{background:var(--panel);border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:8px;}
+.item-card.owned{border-color:var(--accent-dark);}
+.item-card.equipped{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+.item-icon{width:100%;height:64px;display:flex;align-items:center;justify-content:center;font-size:34px;background:var(--panel-2);}
+.item-name{font-family:'Teko',sans-serif;font-size:22px;letter-spacing:.02em;}
+.item-stats{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.7;}
+.item-cost{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:13px;}
+.section-title{font-family:'Teko',sans-serif;font-size:26px;color:var(--text);margin:22px 0 4px;letter-spacing:.03em;border-bottom:1px solid var(--line);padding-bottom:6px;}
+
+/* ---------- LEADERBOARD ---------- */
+#screen-leaderboard{padding:26px 30px;}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:13px;}
+th{text-align:right;color:var(--muted);font-weight:400;font-size:11px;letter-spacing:.08em;border-bottom:1px solid var(--line);padding:8px 10px;}
+td{padding:10px;border-bottom:1px solid #232a1b;}
+tr.me{background:var(--panel-2);color:var(--accent);}
+.rank1{color:var(--accent);} .rank2{color:var(--sand);} .rank3{color:var(--warn);}
+
+/* ---------- header row for sub screens ---------- */
+.subhead{display:flex;justify-content:space-between;align-items:center;}
+.subhead .display{font-size:34px;}
+
+/* ---------- GAME ---------- */
+#screen-game{background:#0b1520;}
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+#hud{position:absolute;inset:0;pointer-events:none;}
+.hud-top{position:absolute;top:14px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;}
+.bars{display:flex;flex-direction:column;gap:6px;width:220px;background:rgba(10,13,7,.55);padding:10px 12px;border:1px solid var(--line);}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-label{width:20px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+.bar-track{flex:1;height:9px;background:#1a1f13;border:1px solid #2a3220;position:relative;}
+.bar-fill{height:100%;width:100%;transition:width .1s linear;}
+.fill-hp{background:linear-gradient(90deg,#7fbf3f,var(--accent));}
+.fill-fuel{background:linear-gradient(90deg,#3f7fbf,var(--steel));}
+.timer{font-family:'Teko',sans-serif;font-size:30px;color:var(--text);background:rgba(10,13,7,.55);padding:2px 16px;border:1px solid var(--line);}
+.killfeed{position:absolute;top:70px;left:16px;display:flex;flex-direction:column;gap:4px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.killfeed div{background:rgba(10,13,7,.6);padding:4px 10px;border-right:2px solid var(--accent);color:var(--sand);opacity:0;animation:kf 4s ease forwards;}
+@keyframes kf{0%{opacity:0;transform:translateX(10px)}10%{opacity:1;transform:translateX(0)}80%{opacity:1}100%{opacity:0}}
+.hud-bottom{position:absolute;bottom:14px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-end;}
+.weapon-hud{background:rgba(10,13,7,.55);border:1px solid var(--line);padding:8px 14px;display:flex;gap:12px;align-items:center;font-family:'JetBrains Mono',monospace;}
+.weapon-hud .wname{font-family:'Teko',sans-serif;font-size:20px;letter-spacing:.03em;color:var(--accent);}
+.weapon-hud .ammo{font-size:16px;}
+.scrap-hud{background:rgba(10,13,7,.55);border:1px solid var(--line);padding:8px 14px;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.crosshair{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;pointer-events:none;}
+.crosshair::before,.crosshair::after{content:'';position:absolute;background:var(--accent);}
+.crosshair::before{left:50%;top:0;width:2px;height:100%;margin-left:-1px;}
+.crosshair::after{top:50%;left:0;height:2px;width:100%;margin-top:-1px;}
+
+#pause-overlay,#end-overlay{position:absolute;inset:0;background:rgba(8,10,6,.86);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;pointer-events:all;z-index:20;}
+#pause-overlay.active,#end-overlay.active{display:flex;}
+.end-title{font-family:'Teko',sans-serif;font-size:64px;letter-spacing:.03em;}
+.end-title.win{color:var(--accent);}
+.end-title.lose{color:var(--danger);}
+.end-stats{display:flex;gap:26px;font-family:'JetBrains Mono',monospace;color:var(--sand);font-size:14px;}
+
+/* touch controls */
+#touch-controls{position:absolute;inset:0;pointer-events:none;display:none;}
+.joy-zone{position:absolute;left:22px;bottom:22px;width:130px;height:130px;border-radius:50%;background:rgba(198,255,94,.08);border:1px solid rgba(198,255,94,.35);pointer-events:all;touch-action:none;}
+.joy-stick{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(198,255,94,.35);border:1px solid var(--accent);left:37px;top:37px;}
+.tbtn{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:15px;letter-spacing:.03em;color:var(--text);background:rgba(20,24,15,.55);border:1px solid var(--line);pointer-events:all;touch-action:none;user-select:none;}
+#btn-fire{width:84px;height:84px;right:26px;bottom:34px;background:rgba(229,71,61,.25);border-color:var(--danger);color:var(--danger);}
+#btn-jump{width:60px;height:60px;right:120px;bottom:20px;background:rgba(109,147,189,.25);border-color:var(--steel);color:var(--steel);}
+#btn-weapon{width:52px;height:52px;right:108px;bottom:100px;font-size:12px;}
+@media (pointer:coarse){#touch-controls{display:block;} .hint-desktop{display:none;}}
+@media (pointer:fine){.hint-mobile{display:none;}}
+
+@media (max-width:760px){
+  .menu-body{flex-direction:column;}
+  .bars{width:170px;}
+  .brand .display{font-size:24px;}
+  .auth-box{padding:26px 18px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== AUTH ===================== -->
+  <div class="screen active" id="screen-auth">
+    <div class="auth-box stencil-border">
+      <div class="auth-logo">
+        <div class="display">SCRAP <span>DUEL</span></div>
+        <span class="eyebrow">آرنای مبارزهٔ دو بعدی</span>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="login">ورود</div>
+        <div class="tab" data-tab="register">ثبت‌نام</div>
+      </div>
+      <div id="form-login">
+        <div class="field"><label>نام کاربری</label><input type="text" id="login-user" autocomplete="off"></div>
+        <div class="field"><label>رمز عبور</label><input type="password" id="login-pass"></div>
+        <button class="btn primary" style="width:100%" id="btn-login">ورود به آرنا</button>
+      </div>
+      <div id="form-register" style="display:none">
+        <div class="field"><label>نام کاربری</label><input type="text" id="reg-user" autocomplete="off"></div>
+        <div class="field"><label>رمز عبور</label><input type="password" id="reg-pass"></div>
+        <button class="btn primary" style="width:100%" id="btn-register">ساخت حساب</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-note">
+        این یک نسخهٔ نمایشی است: حساب‌ها و پیشرفت فقط در همین جلسهٔ مرورگر نگه‌داری می‌شوند و با رفرش صفحه پاک می‌شوند. برای حساب‌های دائمی و بازی آنلاین واقعی بین دو کاربر، نیاز به سرور و دیتابیس واقعی است.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MENU ===================== -->
+  <div class="screen" id="screen-menu">
+    <div class="topbar">
+      <div class="brand"><span class="display">SCRAP <span>DUEL</span></span></div>
+      <div class="playercard">
+        <div>
+          <div class="name" id="hud-username">—</div>
+          <div class="tag">کشتار: <span id="hud-kills">0</span> · مرگ: <span id="hud-deaths">0</span></div>
+        </div>
+        <div class="scrap">⛭ <span id="hud-scrap">0</span></div>
+        <button class="btn small danger" id="btn-logout">خروج</button>
+      </div>
+    </div>
+
+    <div class="menu-body">
+      <div class="menu-left">
+        <div class="mode-card selected" data-mode="duel" data-bots="1">
+          <span class="mtag">۱ در برابر ۱</span>
+          <div class="mtitle">دوئل</div>
+          <div class="msub">مبارزهٔ رودررو با یک بات. اولین نفر به ۱۰ کشتار می‌برد.</div>
+        </div>
+        <div class="mode-card" data-mode="skirmish" data-bots="3">
+          <span class="mtag">آزاد برای همه</span>
+          <div class="mtitle">درگیری</div>
+          <div class="msub">۳ بات هم‌زمان در نقشه. هرکی بیشتر بکشه، رتبه‌ی بهتری می‌گیره.</div>
+        </div>
+        <div class="mode-card" data-mode="survival" data-bots="2">
+          <span class="mtag">امواج فزاینده</span>
+          <div class="mtitle">بقا</div>
+          <div class="msub">موج به موج بات بیشتر میاد. تا وقتی می‌تونی دوام بیار.</div>
+        </div>
+        <div class="menu-actions">
+          <button class="btn primary" id="btn-play" style="flex:2">شروع بازی (آفلاین · با بات)</button>
+          <button class="btn" id="btn-shop" style="flex:1">فروشگاه</button>
+          <button class="btn" id="btn-leaderboard" style="flex:1">جدول امتیازات</button>
+          <button class="btn" id="btn-online" style="flex:1">آنلاین (PeerJS)</button>
+          <button class="btn" id="btn-3d" style="flex:1">حالت 3D</button>
+        </div>
+        <div class="tag hint-desktop" style="margin-top:6px">حرکت: A/D — پرش/جت‌پک: Space (نگه دار) — شلیک: کلیک چپ — تعویض سلاح: ۱-۴ — خروج: Esc</div>
+        <div class="tag hint-mobile" style="margin-top:6px">حرکت با جوی‌استیک سمت چپ، شلیک با دکمهٔ قرمز، پرش/جت‌پک با دکمهٔ آبی.</div>
+      </div>
+      <div class="menu-right">
+        <div class="panel-mini">
+          <h3>مأموریت‌های روزانه</h3>
+          <div id="mission-list"></div>
+        </div>
+        <div class="panel-mini" style="flex:.7">
+          <h3>نقشهٔ فعال</h3>
+          <div class="tag" style="font-size:12.5px;line-height:1.9;color:var(--sand)">
+            سنگر شنی — یک آرنای بیابانی با پلتفرم‌های شناور، بشکه‌های منفجرشونده و باد شن در پس‌زمینه. هر ۱۵ ثانیه یک جعبه سلاح/دارو در نقشه می‌افته.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SHOP ===================== -->
+  <div class="screen" id="screen-shop">
+    <div class="subhead">
+      <div class="display">فروشگاه</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="scrap-hud" style="position:static">⛭ <span id="shop-scrap">0</span></div>
+        <button class="btn small" id="shop-back">بازگشت</button>
+      </div>
+    </div>
+    <div class="section-title">سلاح‌ها</div>
+    <div class="shop-grid" id="weapon-grid"></div>
+    <div class="section-title">زره</div>
+    <div class="shop-grid" id="armor-grid"></div>
+    <div class="section-title">اسکین</div>
+    <div class="shop-grid" id="skin-grid"></div>
+  </div>
+
+  <!-- ===================== LEADERBOARD ===================== -->
+  <div class="screen" id="screen-leaderboard">
+    <div class="subhead">
+      <div class="display">جدول امتیازات</div>
+      <button class="btn small" id="lb-back">بازگشت</button>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>بازیکن</th><th>کشتار</th><th>مرگ</th><th>K/D</th></tr></thead>
+      <tbody id="lb-body"></tbody>
+    </table>
+  </div>
+
+  <!-- ===================== ONLINE (PeerJS) ===================== -->
+  <div class="screen" id="screen-online">
+    <div class="subhead">
+      <div class="display">بازی آنلاین (PeerJS P2P)</div>
+      <button class="btn small" id="online-back">بازگشت</button>
+    </div>
+    <div style="max-width:500px; margin:20px auto; background:var(--panel); padding:20px; border:1px solid var(--line);">
+      <div class="tag">این یک نسخهٔ آزمایشی اولیه است. برای بازی کامل نیاز به کد سینک موقعیت، گلوله و سلامت دارد.</div>
+      <div style="margin:16px 0;">
+        <button class="btn primary" id="btn-host">Host (ایجاد اتاق)</button>
+        <button class="btn" id="btn-join">Join با ID</button>
+      </div>
+      <div class="field">
+        <label>Room ID / Peer ID</label>
+        <input type="text" id="peer-id-input" placeholder="ID دوستت را وارد کن">
+      </div>
+      <div id="peer-status" style="font-family:monospace; color:var(--accent); min-height:24px;"></div>
+      <div id="peer-log" style="background:#0e1109; padding:10px; height:120px; overflow:auto; font-size:12px; border:1px solid var(--line);"></div>
+    </div>
+  </div>
+
+  <!-- ===================== 3D MODE (Three.js) ===================== -->
+  <div class="screen" id="screen-3d">
+    <div class="subhead">
+      <div class="display">حالت 3D (پروتوتایپ)</div>
+      <button class="btn small" id="threed-back">بازگشت به منو</button>
+    </div>
+    <div style="flex:1; position:relative;">
+      <canvas id="threeCanvas" style="width:100%; height:100%; display:block; background:#112;"></canvas>
+      <div style="position:absolute; top:10px; left:10px; color:#fff; font-size:12px; background:rgba(0,0,0,0.5); padding:6px 10px;">
+        WASD حرکت • ماوس نگاه • کلیک شلیک (آزمایشی)
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== GAME ===================== -->
+  <div class="screen" id="screen-game">
+    <canvas id="gameCanvas"></canvas>
+    <div id="hud">
+      <div class="hud-top">
+        <div class="bars">
+          <div class="bar-row"><span class="bar-label">HP</span><div class="bar-track"><div class="bar-fill fill-hp" id="bar-hp"></div></div></div>
+          <div class="bar-row"><span class="bar-label">JET</span><div class="bar-track"><div class="bar-fill fill-fuel" id="bar-fuel"></div></div></div>
+        </div>
+        <div class="timer mono" id="hud-timer">02:00</div>
+      </div>
+      <div class="killfeed" id="killfeed"></div>
+      <div class="hud-bottom">
+        <div class="weapon-hud">
+          <span class="wname" id="hud-wname">SIDEARM</span>
+          <span class="ammo" id="hud-ammo">∞</span>
+        </div>
+        <div class="scrap-hud">⛭ <span id="hud-scrap-live">0</span></div>
+      <button class="btn small danger" id="btn-exit-game" style="position:absolute;bottom:10px;right:10px;font-size:12px;padding:4px 10px;z-index:50; pointer-events:auto;">خروج</button>
+      </div>
+      <div class="crosshair hint-desktop" id="crosshair"></div>
+    </div>
+
+    <div id="touch-controls">
+      <div class="joy-zone" id="joyZone"><div class="joy-stick" id="joyStick"></div></div>
+      <div class="tbtn" id="btn-jump">JET</div>
+      <div class="tbtn" id="btn-fire">FIRE</div>
+      <div class="tbtn" id="btn-weapon">SWAP</div>
+    </div>
+
+    <div id="pause-overlay">
+      <div class="display" style="font-size:40px">مکث</div>
+      <button class="btn primary" id="resume-btn">ادامه</button>
+      <button class="btn danger" id="quit-btn">خروج به منو</button>
+    </div>
+    <div id="end-overlay">
+      <div class="end-title" id="end-title">پیروزی</div>
+      <div class="end-stats">
+        <div>کشتار: <span id="end-kills">0</span></div>
+        <div>مرگ: <span id="end-deaths">0</span></div>
+        <div>اسکرپ کسب‌شده: <span id="end-scrap">0</span></div>
+      </div>
+      <button class="btn primary" id="end-menu-btn">بازگشت به منو</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   DATA
+========================================================= */
+const WEAPONS = {
+  pistol:  {name:'SIDEARM',    icon:'🔫', dmg:14, fireRate:380, ammoMax:Infinity, cost:0,   bulletSpeed:900, spread:0.02, color:'#c6ff5e'},
+  smg:     {name:'VIPER SMG',  icon:'⚡', dmg:9,  fireRate:100, ammoMax:60,       cost:180, bulletSpeed:1000,spread:0.07, color:'#6d93bd'},
+  shotgun: {name:'WIDOWMAKER', icon:'💥', dmg:8,  fireRate:750, ammoMax:16,       cost:240, bulletSpeed:850, spread:0.28, pellets:6, color:'#e8862c'},
+  sniper:  {name:'LONGSHOT',   icon:'🎯', dmg:60, fireRate:1150,ammoMax:8,        cost:320, bulletSpeed:1500,spread:0.006,color:'#e5473d'}
+};
+const ARMORS = {
+  none:   {name:'بدون زره',      icon:'🎽', reduction:0,   cost:0},
+  light:  {name:'وست سبک',       icon:'🦺', reduction:.15, cost:110},
+  medium: {name:'زره ترکیبی',    icon:'🛡️', reduction:.30, cost:230},
+  heavy:  {name:'جاگرنات',       icon:'🪖', reduction:.45, cost:420}
+};
+const SKINS = {
+  default:{name:'استاندارد', icon:'🟢', color:'#c6ff5e', cost:0},
+  crimson:{name:'کریمسون',   icon:'🔴', color:'#e5473d', cost:150},
+  azure:  {name:'آزور',      icon:'🔵', color:'#6d93bd', cost:150},
+  gold:   {name:'طلایی',     icon:'🟡', color:'#e8c94a', cost:300}
+};
+const MISSIONS = [
+  {id:'kills5', text:'۵ حریف را در یک بازی شکست بده', target:5, type:'kills', reward:60},
+  {id:'headshotless', text:'یک بازی را بدون مردن به پایان برسان', target:1, type:'noDeathWin', reward:80},
+  {id:'pickup3', text:'۳ جعبهٔ کمکی از زمین بردار', target:3, type:'pickups', reward:40}
+];
+
+/* =========================================================
+   IN-MEMORY "DATABASE"  (resets on reload — demo only)
+========================================================= */
+const db = {
+  users: {
+    "Nomad":  mkUser("Nomad", "x", {kills:37, deaths:19}),
+    "V.Kade": mkUser("V.Kade","x", {kills:42, deaths:12}),
+    "Ashen":  mkUser("Ashen", "x", {kills:24, deaths:22}),
+    "Rook":   mkUser("Rook",  "x", {kills:15, deaths:9})
+  }
+};
+function mkUser(name,pass,extra){
+  return Object.assign({
+    username:name, password:pass, scrap:120,
+    ownedWeapons:['pistol'], ownedArmors:['none'], ownedSkins:['default'],
+    equippedWeapon:'pistol', equippedArmor:'none', equippedSkin:'default',
+    kills:0, deaths:0, missionProgress:{}
+  }, extra||{});
+}
+let currentUser = null;
+
+/* =========================================================
+   SCREEN NAVIGATION
+========================================================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ---------------- AUTH ---------------- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const isLogin = t.dataset.tab==='login';
+    document.getElementById('form-login').style.display = isLogin?'block':'none';
+    document.getElementById('form-register').style.display = isLogin?'none':'block';
+    document.getElementById('auth-error').textContent='';
+  });
+});
+document.getElementById('btn-register').addEventListener('click', ()=>{
+  const u = document.getElementById('reg-user').value.trim();
+  const p = document.getElementById('reg-pass').value;
+  const err = document.getElementById('auth-error');
+  if(!u || !p){ err.textContent='نام کاربری و رمز را وارد کن.'; return; }
+  if(db.users[u]){ err.textContent='این نام کاربری قبلاً گرفته شده.'; return; }
+  db.users[u] = mkUser(u,p,{});
+  currentUser = db.users[u];
+  enterMenu();
+});
+document.getElementById('btn-login').addEventListener('click', ()=>{
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('auth-error');
+  const rec = db.users[u];
+  if(!rec || rec.password !== p){ err.textContent='نام کاربری یا رمز اشتباه است.'; return; }
+  currentUser = rec;
+  enterMenu();
+});
+document.getElementById('btn-logout').addEventListener('click', ()=>{
+  currentUser = null;
+  showScreen('screen-auth');
+});
+
+function enterMenu(){
+  showScreen('screen-menu');
+  refreshMenu();
+}
+function refreshMenu(){
+  document.getElementById('hud-username').textContent = currentUser.username;
+  document.getElementById('hud-scrap').textContent = currentUser.scrap;
+  document.getElementById('hud-kills').textContent = currentUser.kills;
+  document.getElementById('hud-deaths').textContent = currentUser.deaths;
+  renderMissions();
+}
+function renderMissions(){
+  const list = document.getElementById('mission-list');
+  list.innerHTML = '';
+  MISSIONS.forEach(m=>{
+    const prog = currentUser.missionProgress[m.id]||0;
+    const done = prog >= m.target;
+    const row = document.createElement('div');
+    row.className='mission-row';
+    row.innerHTML = `<span>${done?'✅ ':''}<b>${m.text}</b> (${Math.min(prog,m.target)}/${m.target})</span><span class="reward">+${m.reward}</span>`;
+    list.appendChild(row);
+  });
+}
+
+/* ---------------- MODE SELECT ---------------- */
+let selectedMode = {mode:'duel', bots:1};
+document.querySelectorAll('.mode-card').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    selectedMode = {mode:c.dataset.mode, bots:parseInt(c.dataset.bots,10)};
+  });
+});
+document.getElementById('btn-play').addEventListener('click', ()=>{
+  showScreen('screen-game');
+  startMatch(selectedMode);
+});
+
+/* ---------------- SHOP ---------------- */
+document.getElementById('btn-shop').addEventListener('click', ()=>{ renderShop(); showScreen('screen-shop'); });
+document.getElementById('shop-back').addEventListener('click', enterMenu);
+document.getElementById('btn-leaderboard').addEventListener('click', ()=>{ renderLeaderboard(); showScreen('screen-leaderboard'); });
+document.getElementById('lb-back').addEventListener('click', enterMenu);
+
+document.getElementById('btn-online').addEventListener('click', ()=>{ showOnlineScreen(); });
+document.getElementById('btn-3d').addEventListener('click', ()=>{ show3DScreen(); });
+
+document.getElementById('online-back').addEventListener('click', enterMenu);
+document.getElementById('threed-back').addEventListener('click', enterMenu);
+
+function renderShop(){
+  document.getElementById('shop-scrap').textContent = currentUser.scrap;
+  buildGrid('weapon-grid', WEAPONS, currentUser.ownedWeapons, currentUser.equippedWeapon, 'weapon');
+  buildGrid('armor-grid', ARMORS, currentUser.ownedArmors, currentUser.equippedArmor, 'armor');
+  buildGrid('skin-grid', SKINS, currentUser.ownedSkins, currentUser.equippedSkin, 'skin');
+}
+function buildGrid(gridId, catalog, owned, equipped, kind){
+  const grid = document.getElementById(gridId);
+  grid.innerHTML='';
+  Object.keys(catalog).forEach(key=>{
+    const item = catalog[key];
+    const isOwned = owned.includes(key);
+    const isEquipped = equipped===key;
+    const card = document.createElement('div');
+    card.className = 'item-card'+(isOwned?' owned':'')+(isEquipped?' equipped':'');
+    let stats = '';
+    if(kind==='weapon') stats = `آسیب ${item.dmg} · آتش‌بار ${item.fireRate}ms · فشنگ ${item.ammoMax===Infinity?'∞':item.ammoMax}`;
+    if(kind==='armor') stats = `کاهش آسیب ${Math.round(item.reduction*100)}%`;
+    if(kind==='skin') stats = 'ظاهر بازیکن';
+    card.innerHTML = `
+      <div class="item-icon">${item.icon}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-stats">${stats}</div>
+      <div class="item-cost">${item.cost===0?'رایگان':'⛭ '+item.cost}</div>
+      <button class="btn small ${isEquipped?'primary':''}" data-key="${key}">${isEquipped?'استفاده‌شده':(isOwned?'استفاده کن':'خرید')}</button>
+    `;
+    card.querySelector('button').addEventListener('click', ()=>{
+      if(isEquipped) return;
+      if(!isOwned){
+        if(currentUser.scrap < item.cost){ flashScrapWarn(gridId); return; }
+        currentUser.scrap -= item.cost;
+        owned.push(key);
+      }
+      if(kind==='weapon') currentUser.equippedWeapon = key;
+      if(kind==='armor') currentUser.equippedArmor = key;
+      if(kind==='skin') currentUser.equippedSkin = key;
+      renderShop();
+    });
+    grid.appendChild(card);
+  });
+}
+function flashScrapWarn(gridId){
+  const el = document.getElementById(gridId);
+  el.style.outline = '1px solid var(--danger)';
+  setTimeout(()=>el.style.outline='none', 350);
+}
+
+/* ---------------- LEADERBOARD ---------------- */
+function renderLeaderboard(){
+  const rows = Object.values(db.users).sort((a,b)=> b.kills - a.kills);
+  const body = document.getElementById('lb-body');
+  body.innerHTML = '';
+  rows.forEach((u,i)=>{
+    const tr = document.createElement('tr');
+    if(u.username===currentUser.username) tr.className='me';
+    const rankClass = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
+    const kd = u.deaths===0? u.kills.toFixed(1) : (u.kills/u.deaths).toFixed(2);
+    tr.innerHTML = `<td class="${rankClass}">${i+1}</td><td>${u.username}</td><td>${u.kills}</td><td>${u.deaths}</td><td>${kd}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+/* ---------- ONLINE & 3D basic implementations ---------- */
+function showOnlineScreen(){
+  showScreen('screen-online');
+  const status = document.getElementById('peer-status');
+  const logEl = document.getElementById('peer-log');
+  function log(msg){ 
+    const d = document.createElement('div'); d.textContent = msg; logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; 
+  }
+  status.textContent = 'PeerJS آماده است (کتابخانه لود شده)';
+
+  // Basic PeerJS demo (full game sync needs more work)
+  document.getElementById('btn-host').onclick = () => {
+    if(!window.Peer){ status.textContent = 'PeerJS لود نشده'; return; }
+    peer = new Peer();
+    peer.on('open', id => {
+      status.textContent = 'اتاق ساخته شد. ID تو: ' + id;
+      log('شما Host هستید. ID را به دوستتان بدهید.');
+    });
+    peer.on('connection', c => {
+      conn = c;
+      log('بازیکن وصل شد!');
+      conn.on('data', data => log('دریافت: ' + data));
+    });
+  };
+
+  document.getElementById('btn-join').onclick = () => {
+    if(!window.Peer){ status.textContent = 'PeerJS لود نشده'; return; }
+    const targetId = document.getElementById('peer-id-input').value.trim();
+    if(!targetId) return alert('ID را وارد کن');
+    peer = new Peer();
+    peer.on('open', () => {
+      conn = peer.connect(targetId);
+      conn.on('open', () => {
+        status.textContent = 'وصل شدید!';
+        log('وصل شدید به هاست');
+        conn.send('سلام از کلاینت!');
+      });
+      conn.on('data', data => log('دریافت: ' + data));
+    });
+  };
+}
+
+let threeScene, threeCamera, threeRenderer, threePlayer, threeBot, threeKeys = {};
+function show3DScreen(){
+  showScreen('screen-3d');
+  const canvas = document.getElementById('threeCanvas');
+  if(!window.THREE){ 
+    canvas.parentElement.innerHTML = '<div style="color:#ff4444; padding:40px; text-align:center;">Three.js لود نشده. اینترنت را چک کنید.</div>'; 
+    return; 
+  }
+  // Basic 3D prototype
+  if(threeRenderer) threeRenderer.dispose();
+  threeRenderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  threeRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  threeScene = new THREE.Scene();
+  threeCamera = new THREE.PerspectiveCamera(70, canvas.clientWidth/canvas.clientHeight, 0.1, 1000);
+  threeCamera.position.set(0, 5, 10);
+
+  // Ground
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(50,50), new THREE.MeshLambertMaterial({color:0x3a4a2a}));
+  ground.rotation.x = -Math.PI/2;
+  threeScene.add(ground);
+
+  // Player box (chibi style)
+  threePlayer = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color:0xc6ff5e}));
+  threePlayer.position.y = 1;
+  threeScene.add(threePlayer);
+
+  // Bot box (enemy red)
+  threeBot = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshLambertMaterial({color:0xc23a2f}));
+  threeBot.position.set(8,1, -5);
+  threeScene.add(threeBot);
+
+  // Light
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(10,20,10);
+  threeScene.add(light);
+  threeScene.add(new THREE.AmbientLight(0x404040));
+
+  // Simple controls
+  window.addEventListener('keydown', e => threeKeys[e.key.toLowerCase()] = true);
+  window.addEventListener('keyup', e => threeKeys[e.key.toLowerCase()] = false);
+  canvas.addEventListener('click', () => {
+    // Simple "shoot" - move bot or log
+    threeBot.position.x += (Math.random()-0.5)*4;
+    threeBot.position.z += (Math.random()-0.5)*4;
+  });
+
+  function animate3D(){
+    if(!threeScene || document.getElementById('screen-3d').style.display === 'none') return;
+    requestAnimationFrame(animate3D);
+    // Simple movement
+    const speed = 0.15;
+    if(threeKeys['w']) threePlayer.position.z -= speed;
+    if(threeKeys['s']) threePlayer.position.z += speed;
+    if(threeKeys['a']) threePlayer.position.x -= speed;
+    if(threeKeys['d']) threePlayer.position.x += speed;
+    // Camera follow
+    threeCamera.position.x = threePlayer.position.x;
+    threeCamera.position.z = threePlayer.position.z + 12;
+    threeCamera.lookAt(threePlayer.position.x, 2, threePlayer.position.z);
+    threeRenderer.render(threeScene, threeCamera);
+  }
+  animate3D();
+  // Resize handler for 3D canvas
+  window.addEventListener('resize', () => {
+    if(threeRenderer && threeCamera){
+      threeRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+      threeCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+      threeCamera.updateProjectionMatrix();
+    }
+  });
+}
+
+/* =========================================================
+   GAME ENGINE
+========================================================= */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const GRAVITY = 1900;
+const GROUND_FRICTION = 0.82;
+const WORLD_W = 2600;
+const MAP_FLOOR = 620;
+
+let world, player, bots, bullets, particles, pickups, camX, matchTimer, matchActive, killFeedEl, spawnTimer, waveNumber, mode;
+
+function buildMap(){
+  // platforms: {x,y,w,h}
+  return [
+    {x:0, y:MAP_FLOOR, w:WORLD_W, h:80, deco:'ground'},
+    {x:260, y:MAP_FLOOR-140, w:220, h:22},
+    {x:620, y:MAP_FLOOR-260, w:180, h:22},
+    {x:900, y:MAP_FLOOR-120, w:240, h:22},
+    {x:1220, y:MAP_FLOOR-320, w:200, h:22},
+    {x:1500, y:MAP_FLOOR-160, w:260, h:22},
+    {x:1820, y:MAP_FLOOR-280, w:200, h:22},
+    {x:2100, y:MAP_FLOOR-120, w:260, h:22},
+    {x:2380, y:MAP_FLOOR-240, w:180, h:22},
+    // crates (obstacles, act like small platforms)
+    {x:1050, y:MAP_FLOOR-50, w:60, h:50, crate:true},
+    {x:1750, y:MAP_FLOOR-50, w:60, h:50, crate:true},
+    {x:400, y:MAP_FLOOR-50, w:60, h:50, crate:true}
+  ];
+}
+
+function newEntity(x, color){
+  return {
+    x, y: MAP_FLOOR-120, vx:0, vy:0, w:34, h:46,
+    onGround:false, facing:1, health:100, maxHealth:100,
+    fuel:100, maxFuel:100, weapon:'pistol', armor:'none',
+    ammo:{smg:0, shotgun:0, sniper:0}, lastShot:0, alive:true,
+    respawnTimer:0, color, kills:0, deaths:0,
+    aimAngle:0, // radians
+    aiState:'patrol', aiTimer:0, aiDir:1
+  };
+}
+
+function startMatch(cfg){
+  mode = cfg.mode;
+  world = buildMap();
+  camX = 0;
+  bullets = []; particles = []; pickups = [];
+  matchTimer = 120; matchActive = true; spawnTimer = 6; waveNumber = 1;
+  killFeedEl = document.getElementById('killfeed');
+  killFeedEl.innerHTML='';
+
+  const skinColor = SKINS[currentUser.equippedSkin].color;
+  player = newEntity(120, skinColor);
+  player.weapon = currentUser.equippedWeapon;
+  player.armor = currentUser.equippedArmor;
+  player.ammo.smg = WEAPONS.smg.ammoMax*0.6|0;
+  player.ammo.shotgun = WEAPONS.shotgun.ammoMax*0.6|0;
+  player.ammo.sniper = WEAPONS.sniper.ammoMax*0.6|0;
+  player.isPlayer = true;
+  player.matchKills = 0; player.matchDeaths = 0; player.matchScrap = 0; player.matchPickups = 0;
+
+  bots = [];
+  const botCount = cfg.mode==='survival' ? 1 : cfg.bots;
+  for(let i=0;i<botCount;i++) spawnBot(i);
+
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('end-overlay').classList.remove('active');
+  keys = {}; mouse.down=false;
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+}
+
+function spawnBot(i){
+  const x = 800 + i*500 + Math.random()*300;
+  const botColors = ['#e5473d','#e8862c','#e8c94a','#b070d9'];
+  const bot = newEntity(x % (WORLD_W-200) + 200, botColors[i%botColors.length]);
+  bot.weapon = ['pistol','smg','shotgun'][Math.floor(Math.random()*3)];
+  bot.ammo.smg = 999; bot.ammo.shotgun=999; bot.ammo.sniper=999;
+  bot.armor = ['none','light','medium'][Math.floor(Math.random()*3)];
+  bot.isBot = true;
+  bot.reactionDelay = 150 + Math.random()*250;
+  bots.push(bot);
+}
+
+/* ---------- input ---------- */
+let keys = {};
+let mouse = {x:0,y:0,down:false};
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if(e.code==='Escape' && matchActive) togglePause();
+  if(['Digit1','Digit2','Digit3','Digit4'].includes(e.code)) switchWeaponByIndex(parseInt(e.code.slice(-1),10)-1);
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+canvas.addEventListener('mousemove', e=>{
+  const r = canvas.getBoundingClientRect();
+  mouse.x = e.clientX-r.left; mouse.y = e.clientY-r.top;
+});
+canvas.addEventListener('mousedown', ()=>{ mouse.down=true; });
+window.addEventListener('mouseup', ()=>{ mouse.down=false; });
+
+function switchWeaponByIndex(idx){
+  const owned = currentUser.ownedWeapons;
+  const order = ['pistol','smg','shotgun','sniper'].filter(w=>owned.includes(w));
+  if(order[idx]) player.weapon = order[idx];
+}
+
+/* ---------- touch controls ---------- */
+const joyZone = document.getElementById('joyZone');
+const joyStick = document.getElementById('joyStick');
+let joyActive=false, joyVec={x:0,y:0};
+function joyHandler(e){
+  e.preventDefault();
+  const t = e.touches ? e.touches[0] : e;
+  const r = joyZone.getBoundingClientRect();
+  const cx = r.left+r.width/2, cy = r.top+r.height/2;
+  let dx = t.clientX-cx, dy = t.clientY-cy;
+  const max = r.width/2;
+  const dist = Math.min(Math.hypot(dx,dy), max);
+  const ang = Math.atan2(dy,dx);
+  dx = Math.cos(ang)*dist; dy = Math.sin(ang)*dist;
+  joyStick.style.left = (37+dx)+'px'; joyStick.style.top = (37+dy)+'px';
+  joyVec = {x:dx/max, y:dy/max};
+}
+function joyReset(){ joyActive=false; joyVec={x:0,y:0}; joyStick.style.left='37px'; joyStick.style.top='37px'; }
+joyZone.addEventListener('touchstart', e=>{ joyActive=true; joyHandler(e); });
+joyZone.addEventListener('touchmove', e=>{ if(joyActive) joyHandler(e); });
+joyZone.addEventListener('touchend', joyReset);
+
+let jetHeld=false, fireHeld=false;
+const btnJump = document.getElementById('btn-jump');
+const btnFire = document.getElementById('btn-fire');
+const btnWeapon = document.getElementById('btn-weapon');
+btnJump.addEventListener('touchstart', e=>{e.preventDefault(); jetHeld=true;});
+btnJump.addEventListener('touchend', e=>{e.preventDefault(); jetHeld=false;});
+btnFire.addEventListener('touchstart', e=>{e.preventDefault(); fireHeld=true;});
+btnFire.addEventListener('touchend', e=>{e.preventDefault(); fireHeld=false;});
+btnWeapon.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const owned = currentUser.ownedWeapons;
+  const order = ['pistol','smg','shotgun','sniper'].filter(w=>owned.includes(w));
+  const cur = order.indexOf(player.weapon);
+  player.weapon = order[(cur+1)%order.length];
+});
+
+/* ---------- pause / quit ---------- */
+function togglePause(){
+  const p = document.getElementById('pause-overlay');
+  if(p.classList.contains('active')){ p.classList.remove('active'); lastTime=performance.now(); requestAnimationFrame(gameLoop); }
+  else { p.classList.add('active'); }
+}
+document.getElementById('resume-btn').addEventListener('click', togglePause);
+document.getElementById('quit-btn').addEventListener('click', ()=>{ matchActive=false; document.getElementById('pause-overlay').classList.remove('active'); enterMenu(); });
+document.getElementById('end-menu-btn').addEventListener('click', ()=>{ document.getElementById('end-overlay').classList.remove('active'); enterMenu(); });
+
+document.getElementById('btn-exit-game').addEventListener('click', (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+  matchActive = false;
+  document.getElementById('pause-overlay').classList.remove('active');
+  document.getElementById('end-overlay').classList.remove('active');
+  enterMenu();
+});
+
+/* ---------- physics helpers ---------- */
+function rectsOverlap(a,b){
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+function resolvePlatforms(ent, dt){
+  ent.onGround = false;
+  for(const p of world){
+    if(ent.x < p.x+p.w && ent.x+ent.w > p.x && ent.y+ent.h > p.y && ent.y+ent.h < p.y + p.h + Math.abs(ent.vy*dt)+14 && ent.vy>=0){
+      // landing on top
+      if(ent.y + ent.h - ent.vy*dt <= p.y + 2){
+        ent.y = p.y - ent.h;
+        ent.vy = 0;
+        ent.onGround = true;
+      }
+    }
+  }
+  if(ent.y+ent.h > MAP_FLOOR){ ent.y = MAP_FLOOR-ent.h; ent.vy=0; ent.onGround=true; }
+  ent.x = Math.max(0, Math.min(WORLD_W-ent.w, ent.x));
+}
+
+function damageEntity(ent, dmg, sourceIsPlayer, killerLabel){
+  if(!ent.alive) return;
+  const red = ARMORS[ent.armor].reduction;
+  ent.health -= dmg*(1-red);
+  spawnParticles(ent.x+ent.w/2, ent.y+ent.h/2, ent.isBot?'#e5473d':'#c6ff5e', 6);
+  if(ent.health <= 0){
+    ent.alive = false;
+    ent.health = 0;
+    ent.respawnTimer = 2.2;
+    if(ent.isPlayer){
+      ent.matchDeaths++; currentUser.deaths++;
+      addKillFeed(`${killerLabel||'حریف'} ⟶ تو را حذف کرد`);
+    } else if(ent.isBot){
+      addKillFeed(`تو ⟶ ${killerLabel||'بات'} را حذف کردی`);
+      if(sourceIsPlayer){
+        player.matchKills++;
+        currentUser.kills++;
+        const gain = 12 + Math.floor(Math.random()*6);
+        currentUser.scrap += gain; player.matchScrap += gain;
+        currentUser.missionProgress['kills5'] = (currentUser.missionProgress['kills5']||0)+1;
+      }
+    }
+  }
+}
+function addKillFeed(text){
+  const div = document.createElement('div');
+  div.textContent = text;
+  killFeedEl.appendChild(div);
+  setTimeout(()=>div.remove(), 4000);
+}
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    particles.push({x,y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,life:0.4+Math.random()*0.3,color});
+  }
+}
+
+/* ---------- shooting ---------- */
+function tryShoot(ent, angle, now){
+  const w = WEAPONS[ent.weapon];
+  if(now - ent.lastShot < w.fireRate) return;
+  if(w.ammoMax !== Infinity){
+    if(ent.isPlayer){ if(currentUser.equippedWeapon===ent.weapon){ if(ent.ammo[ent.weapon]<=0) return; ent.ammo[ent.weapon]--; } }
+  }
+  ent.lastShot = now;
+  const count = w.pellets||1;
+  for(let i=0;i<count;i++){
+    const spread = (Math.random()-.5)*w.spread*2;
+    const a = angle+spread;
+    bullets.push({
+      x: ent.x+ent.w/2, y: ent.y+ent.h*0.4,
+      vx: Math.cos(a)*w.bulletSpeed, vy: Math.sin(a)*w.bulletSpeed,
+      dmg: w.dmg, owner: ent, color: w.color, life:1.1
+    });
+  }
+  spawnParticles(ent.x+ent.w/2+Math.cos(angle)*20, ent.y+ent.h*0.4+Math.sin(angle)*20, w.color, 3);
+}
+
+/* ---------- pickups ---------- */
+function spawnPickup(){
+  const spots = world.filter(p=>!p.deco && !p.crate);
+  const spot = spots[Math.floor(Math.random()*spots.length)] || world[0];
+  const types = ['health','ammo','armor'];
+  const type = types[Math.floor(Math.random()*types.length)];
+  pickups.push({x: spot.x+Math.random()*(spot.w-24), y: spot.y-30, w:24, h:24, type, bob:0});
+}
+
+/* ---------- AI ---------- */
+function updateBotAI(bot, dt, now){
+  if(!bot.alive) return;
+  const target = player.alive ? player : null;
+  bot.aiTimer -= dt;
+  if(target){
+    const dx = target.x - bot.x;
+    const dist = Math.abs(dx);
+    bot.facing = dx>0?1:-1;
+    if(dist < 620){
+      bot.aiState='engage';
+      // maintain mid-range, back off if too close for shotgun-less bots
+      const desired = 220;
+      if(dist > desired+40) bot.vx = 220*bot.facing;
+      else if(dist < desired-40) bot.vx = -160*bot.facing;
+      else bot.vx *= GROUND_FRICTION;
+      // jump/jetpack over obstacles or to reach platform
+      if(Math.random()<0.01 && bot.onGround) bot.vy = -620;
+      if(!bot.onGround && Math.random()<0.4 && bot.fuel>10){ bot.vy -= 900*dt; bot.fuel -= 40*dt; }
+      // shoot if roughly aligned vertically
+      if(Math.abs(target.y-bot.y) < 90){
+        const angle = Math.atan2((target.y+target.h/2)-(bot.y+bot.h/2), (target.x+target.w/2)-(bot.x+bot.w/2));
+        tryShoot(bot, angle, now);
+      }
+      return;
+    }
+  }
+  // patrol
+  bot.aiState='patrol';
+  if(bot.aiTimer<=0){ bot.aiDir = Math.random()<0.5?-1:1; bot.aiTimer = 1.5+Math.random()*2; }
+  bot.vx = 110*bot.aiDir;
+  bot.facing = bot.aiDir;
+  if(bot.onGround && Math.random()<0.006) bot.vy=-560;
+}
+
+/* ---------- update ---------- */
+let lastTime=0;
+function gameLoop(now){
+  if(!matchActive) return;
+  if(document.getElementById('pause-overlay').classList.contains('active')) return;
+  const dt = Math.min(0.033, (now-lastTime)/1000);
+  lastTime = now;
+  update(dt, now);
+  draw();
+  if(matchActive) requestAnimationFrame(gameLoop);
+}
+
+function update(dt, now){
+  matchTimer -= dt;
+  if(matchTimer<=0){ endMatch(player.matchKills > player.matchDeaths); return; }
+  document.getElementById('hud-timer').textContent = fmtTime(matchTimer);
+
+  // survival wave spawn
+  if(mode==='survival'){
+    if(bots.filter(b=>b.alive).length===0 && bots.length<8){
+      waveNumber++;
+      for(let i=0;i<Math.min(waveNumber,4);i++) spawnBot(bots.length);
+      addKillFeed(`موج ${waveNumber} از راه رسید`);
+    }
+  }
+
+  // pickups timer
+  spawnTimer -= dt;
+  if(spawnTimer<=0){ spawnPickup(); spawnTimer = 12+Math.random()*6; }
+
+  // ---- player input ----
+  if(player.alive){
+    let move = 0;
+    if(keys['KeyA']||keys['ArrowLeft']) move -= 1;
+    if(keys['KeyD']||keys['ArrowRight']) move += 1;
+    move += joyVec.x;
+    move = Math.max(-1,Math.min(1,move));
+    player.vx += move*2600*dt;
+    player.vx = Math.max(-360,Math.min(360,player.vx));
+    if(move!==0) player.facing = move>0?1:-1;
+
+    const wantJet = keys['Space'] || jetHeld || joyVec.y < -0.5;
+    if(wantJet && player.fuel>0){
+      player.vy -= 2600*dt;
+      player.vy = Math.max(player.vy, -520);
+      player.fuel -= 55*dt;
+    } else if(player.onGround){
+      player.fuel = Math.min(player.maxFuel, player.fuel + 40*dt);
+    } else {
+      player.fuel = Math.min(player.maxFuel, player.fuel + 8*dt);
+    }
+    if(wantJet && player.onGround) player.vy = -420;
+
+    // aiming + shooting
+    let angle;
+    const isTouch = matchMedia('(pointer:coarse)').matches;
+    if(isTouch){
+      angle = player.facing>0?0:Math.PI;
+      if(fireHeld) tryShoot(player, angle, now);
+    } else {
+      const screenX = player.x - camX + player.w/2;
+      const screenY = player.y + player.h*0.4;
+      angle = Math.atan2(mouse.y-screenY, mouse.x-screenX);
+      player.facing = Math.cos(angle) >= 0 ? 1 : -1;
+      if(mouse.down) tryShoot(player, angle, now);
+      const cross = document.getElementById('crosshair');
+      cross.style.left = mouse.x+'px'; cross.style.top = mouse.y+'px';
+    }
+  } else {
+    player.respawnTimer -= dt;
+    if(player.respawnTimer<=0){
+      player.alive=true; player.health=player.maxHealth; player.fuel=player.maxFuel;
+      player.x = 120+Math.random()*200; player.y = MAP_FLOOR-160; player.vx=0; player.vy=0;
+    }
+  }
+
+  // physics for player + bots
+  [player,...bots].forEach(ent=>{
+    if(!ent.alive){
+      if(ent.isBot){
+        ent.respawnTimer -= dt;
+        if(ent.respawnTimer<=0){
+          ent.alive=true; ent.health=ent.maxHealth; ent.fuel=ent.maxFuel;
+          ent.x = Math.random()*WORLD_W*0.8+100; ent.y=MAP_FLOOR-160; ent.vx=0; ent.vy=0;
+        }
+      }
+      return;
+    }
+    ent.vy += GRAVITY*dt;
+    ent.vx *= ent.onGround ? GROUND_FRICTION : 0.98;
+    ent.x += ent.vx*dt;
+    ent.y += ent.vy*dt;
+    resolvePlatforms(ent, dt);
+  });
+
+  bots.forEach(b=> updateBotAI(b, dt, now));
+
+  // bullets
+  for(let i=bullets.length-1;i>=0;i--){
+    const bl = bullets[i];
+    bl.x += bl.vx*dt; bl.y += bl.vy*dt; bl.life -= dt;
+    let hit=false;
+    // platform collision
+    for(const p of world){
+      if(bl.x>p.x && bl.x<p.x+p.w && bl.y>p.y && bl.y<p.y+p.h){ hit=true; break; }
+    }
+    // entity collision
+    const targets = [player, ...bots].filter(e=>e.alive && e!==bl.owner);
+    for(const t of targets){
+      if(bl.x>t.x && bl.x<t.x+t.w && bl.y>t.y && bl.y<t.y+t.h){
+        const ownerIsPlayer = bl.owner.isPlayer;
+        const label = bl.owner.isPlayer ? 'تو' : 'بات';
+        damageEntity(t, bl.dmg, ownerIsPlayer, label);
+        hit=true; break;
+      }
+    }
+    if(hit || bl.life<=0 || bl.x<0 || bl.x>WORLD_W) bullets.splice(i,1);
+  }
+
+  // particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=800*dt; p.life-=dt;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  // pickups
+  for(let i=pickups.length-1;i>=0;i--){
+    const pk = pickups[i];
+    pk.bob += dt*4;
+    if(player.alive && rectsOverlap(player, pk)){
+      if(pk.type==='health'){ player.health = Math.min(player.maxHealth, player.health+35); }
+      if(pk.type==='ammo'){ ['smg','shotgun','sniper'].forEach(w=> player.ammo[w] = Math.min(WEAPONS[w].ammoMax, player.ammo[w]+WEAPONS[w].ammoMax*0.5)); }
+      if(pk.type==='armor'){ player.health = Math.min(player.maxHealth, player.health+15); }
+      player.matchPickups++;
+      currentUser.missionProgress['pickup3'] = (currentUser.missionProgress['pickup3']||0)+1;
+      addKillFeed(pk.type==='health'?'بستهٔ سلامتی برداشته شد':(pk.type==='ammo'?'جعبهٔ مهمات برداشته شد':'کیت زره برداشته شد'));
+      pickups.splice(i,1);
+    }
+  }
+
+  // camera follow
+  const targetCam = player.x - canvas.width/2 + player.w/2;
+  camX += (targetCam-camX)*Math.min(1, dt*6);
+  camX = Math.max(0, Math.min(WORLD_W-canvas.width, camX));
+
+  // hud
+  document.getElementById('bar-hp').style.width = Math.max(0,player.health)+'%';
+  document.getElementById('bar-fuel').style.width = Math.max(0,player.fuel)+'%';
+  const w = WEAPONS[player.weapon];
+  document.getElementById('hud-wname').textContent = w.name;
+  document.getElementById('hud-ammo').textContent = w.ammoMax===Infinity ? '∞' : player.ammo[player.weapon];
+  document.getElementById('hud-scrap-live').textContent = currentUser.scrap;
+
+  // duel win/lose condition
+  if(mode==='duel' && player.matchKills>=10){ endMatch(true); }
+  else if(mode==='duel' && player.matchDeaths>=10){ endMatch(false); }
+}
+
+function fmtTime(t){
+  t = Math.max(0,t);
+  const m = Math.floor(t/60), s = Math.floor(t%60);
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function endMatch(won){
+  matchActive = false;
+  if(won && mode!=='survival'){ currentUser.missionProgress['headshotless'] = player.matchDeaths===0 ? 1 : (currentUser.missionProgress['headshotless']||0); }
+  checkMissionRewards();
+  const ov = document.getElementById('end-overlay');
+  const title = document.getElementById('end-title');
+  title.textContent = won? 'پیروزی' : (mode==='survival' ? 'پایان بقا' : 'شکست');
+  title.className = 'end-title '+(won?'win':'lose');
+  document.getElementById('end-kills').textContent = player.matchKills;
+  document.getElementById('end-deaths').textContent = player.matchDeaths;
+  document.getElementById('end-scrap').textContent = player.matchScrap;
+  ov.classList.add('active');
+}
+function checkMissionRewards(){
+  MISSIONS.forEach(m=>{
+    const prog = currentUser.missionProgress[m.id]||0;
+    if(prog>=m.target && !currentUser.missionProgress[m.id+'_claimed']){
+      currentUser.scrap += m.reward;
+      currentUser.missionProgress[m.id+'_claimed'] = true;
+    }
+  });
+}
+
+/* ---------- draw ---------- */
+function draw(){
+  const w = canvas.width, h = canvas.height;
+  // sky
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#2b3a2a'); grad.addColorStop(0.55,'#1a2417'); grad.addColorStop(1,'#0f130a');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+  // sun
+  ctx.beginPath(); ctx.arc(w*0.78 - camX*0.05, h*0.18, 70, 0, Math.PI*2);
+  const sg = ctx.createRadialGradient(w*0.78-camX*0.05,h*0.18,0,w*0.78-camX*0.05,h*0.18,70);
+  sg.addColorStop(0,'rgba(198,255,94,0.5)'); sg.addColorStop(1,'rgba(198,255,94,0)');
+  ctx.fillStyle = sg; ctx.fill();
+  // parallax dunes
+  ctx.fillStyle = '#1f2818';
+  for(let i=0;i<6;i++){
+    const dx = (i*500 - camX*0.3) % (WORLD_W+500);
+    ctx.beginPath();
+    ctx.ellipse(dx, h*0.62, 320, 90, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.save();
+  ctx.translate(-camX,0);
+
+  // platforms
+  world.forEach(p=>{
+    if(p.crate){
+      ctx.fillStyle = '#5a4a2e'; ctx.fillRect(p.x,p.y,p.w,p.h);
+      ctx.strokeStyle = '#2c2415'; ctx.lineWidth=3; ctx.strokeRect(p.x+2,p.y+2,p.w-4,p.h-4);
+    } else if(p.deco==='ground'){
+      ctx.fillStyle = '#4a5230'; ctx.fillRect(p.x,p.y,p.w,p.h);
+      ctx.fillStyle = '#39411f'; ctx.fillRect(p.x,p.y,p.w,10);
+    } else {
+      ctx.fillStyle = '#3d4a2a'; ctx.fillRect(p.x,p.y,p.w,p.h);
+      ctx.fillStyle = '#c6ff5e'; ctx.fillRect(p.x,p.y,p.w,3);
+    }
+  });
+
+  // pickups
+  pickups.forEach(pk=>{
+    const bobY = pk.y+Math.sin(pk.bob)*4;
+    ctx.font='20px sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle = pk.type==='health'?'#c6ff5e':pk.type==='ammo'?'#e8862c':'#6d93bd';
+    ctx.beginPath(); ctx.arc(pk.x+pk.w/2, bobY+pk.h/2, 16, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0e1109';
+    ctx.fillText(pk.type==='health'?'+':pk.type==='ammo'?'A':'S', pk.x+pk.w/2, bobY+pk.h/2+6);
+  });
+
+  // entities
+  [player, ...bots].forEach(ent=> drawEntity(ent));
+
+  // bullets
+  bullets.forEach(bl=>{
+    ctx.strokeStyle = bl.color; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(bl.x,bl.y); ctx.lineTo(bl.x-bl.vx*0.02, bl.y-bl.vy*0.02); ctx.stroke();
+  });
+
+  // particles
+  particles.forEach(p=>{
+    ctx.globalAlpha = Math.max(0,p.life/0.6);
+    ctx.fillStyle = p.color; ctx.fillRect(p.x-2,p.y-2,4,4);
+    ctx.globalAlpha=1;
+  });
+
+  ctx.restore();
+}
+
+function drawEntity(ent){
+  if(!ent.alive) return;
+
+  const skinKey = ent.isPlayer && currentUser ? currentUser.equippedSkin : 'default';
+  const skin = SKINS[skinKey] || SKINS.default;
+  let accent = skin.accent || '#c6ff5e';
+  let bodyColor = skin.color || ent.color;
+  const isEnemy = !!ent.isBot;
+  if(isEnemy){
+    accent = '#ff4444'; // enemy red accent - clearly different from player skins
+    bodyColor = ent.color; // keep their unique enemy color
+  }
+
+  ctx.save();
+  ctx.translate(ent.x + ent.w/2, ent.y + ent.h/2);
+  ctx.scale(ent.facing, 1);
+
+  const t = Date.now() / 120;
+  const walkCycle = Math.sin(t * (Math.abs(ent.vx) > 10 ? 2.2 : 0)) * (ent.onGround ? 1 : 0.4);
+  const jetActive = !ent.onGround && (ent.isPlayer ? (keys['Space'] || jetHeld || joyVec.y < -0.4) : true);
+
+  // ========== DETAILED CHIBI TACTICAL SOLDIER (like your uploaded image - for ALL skins) ==========
+  // Animated legs
+  ctx.fillStyle = '#1f1f1f';
+  const legOffset = walkCycle * 3;
+  ctx.fillRect(-9 + legOffset*0.3, 9, 5, 16);
+  ctx.fillRect(4 - legOffset*0.3, 9, 5, 16);
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-10 + legOffset*0.3, 23, 7, 5);
+  ctx.fillRect(3 - legOffset*0.3, 23, 7, 5);
+
+  // Tactical body armor
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(-11, -7, 22, 18);
+  ctx.fillStyle = accent;
+  ctx.fillRect(-11, -5, 22, 2);
+  ctx.fillRect(-9, 5, 18, 2);
+  ctx.fillRect(-13, -9, 5, 7);
+  ctx.fillRect(8, -9, 5, 7);
+
+  // Helmet + glowing visor (exact style from image)
+  ctx.fillStyle = '#0f0f0f';
+  ctx.beginPath();
+  ctx.ellipse(0, -16, 12, 11, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = accent;
+  ctx.fillRect(-9, -20, 18, 7);
+  ctx.fillStyle = 'rgba(255,255,200,0.5)';
+  ctx.fillRect(-8, -19, 16, 5);
+
+  if(isEnemy){
+    // Enemy specific: red glowing visor + danger stripe
+    ctx.fillStyle = '#ff2222';
+    ctx.fillRect(-9, -20, 18, 7);
+    ctx.fillStyle = '#ffaa00';
+    ctx.fillRect(-8, -19, 16, 5);
+    // red danger mark on body
+    ctx.fillStyle = '#ff2222';
+    ctx.fillRect(-4, -2, 8, 3);
+  }
+
+  // Skull emblem on helmet (for legendary/gold)
+  if (skinKey === 'shadow_ops' || skinKey === 'gold') {
+    ctx.fillStyle = accent;
+    ctx.fillRect(-3, -26, 6, 3);
+    ctx.fillRect(-2, -24, 1.5, 2);
+    ctx.fillRect(0.5, -24, 1.5, 2);
+    ctx.fillRect(-7, -25, 3, 1.5);
+    ctx.fillRect(4, -25, 3, 1.5);
+  }
+
+  // Jetpack + animated flames
+  ctx.fillStyle = '#2a2f22';
+  ctx.fillRect(-15, -5, 5, 14);
+  ctx.fillStyle = accent;
+  ctx.fillRect(-14, -3, 3, 3);
+  if (jetActive) {
+    ctx.fillStyle = '#ff5500';
+    ctx.fillRect(-14, 9, 3, 7 + Math.random()*5);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(-13, 11, 1.5, 3);
+  }
+
+  // Weapon (changes with equipped weapon, styled like image)
+  const wpn = ent.weapon || 'pistol';
+  ctx.fillStyle = '#1a1a1a';
+  if (wpn === 'pistol') {
+    ctx.fillRect(7, -2, 14, 5);
+    ctx.fillRect(15, 3, 4, 4);
+  } else if (wpn === 'smg') {
+    ctx.fillRect(6, -3, 20, 6);
+    ctx.fillRect(18, 3, 5, 4);
+  } else if (wpn === 'shotgun') {
+    ctx.fillRect(5, -4, 24, 8);
+    ctx.fillRect(20, 4, 6, 5);
+  } else if (wpn === 'sniper') {
+    ctx.fillRect(4, -3, 30, 5);
+    ctx.fillRect(25, 2, 6, 4);
+  } else {
+    ctx.fillRect(7, -4, 26, 7);
+    ctx.fillRect(11, 3, 16, 5);
+    ctx.fillStyle = accent;
+    ctx.fillRect(28, -2, 5, 3);
+  }
+
+  // Muzzle flash
+  if (ent.lastShot && Date.now() - ent.lastShot < 70) {
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.moveTo(32, 0);
+    ctx.lineTo(42, -5);
+    ctx.lineTo(42, 5);
+    ctx.fill();
+  }
+
+  // Arms
+  ctx.fillStyle = bodyColor;
+  ctx.fillRect(-7, -1, 7, 4);
+  ctx.fillRect(6, -1, 8, 4);
+
+  ctx.restore();
+
+  // Health bar
+  const hpPct = Math.max(0, ent.health) / ent.maxHealth;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(ent.x, ent.y-14, ent.w, 6);
+  ctx.fillStyle = (hpPct > 0.45 ? accent : '#e5473d');
+  ctx.fillRect(ent.x, ent.y-14, ent.w * hpPct, 6);
+
+  if (ent.isPlayer && currentUser) {
+    ctx.fillStyle = accent;
+    ctx.font = '8px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText((currentUser.username || '') + ' L' + (currentUser.level || 1), ent.x + ent.w/2, ent.y - 18);
+  }
+}
+
+})();
+</script>
+</body>
+</html>
