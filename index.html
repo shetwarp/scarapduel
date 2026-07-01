@@ -182,6 +182,10 @@ tr.me{background:var(--panel-2);color:var(--accent);}
   .auth-box{padding:26px 18px;}
 }
 </style>
+
+<!-- Load PeerJS for online multiplayer and Three.js for 3D mode -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -209,7 +213,7 @@ tr.me{background:var(--panel-2);color:var(--accent);}
       </div>
       <div class="auth-error" id="auth-error"></div>
       <div class="auth-note">
-        این یک نسخهٔ نمایشی است: حساب‌ها و پیشرفت فقط در همین جلسهٔ مرورگر نگه‌داری می‌شوند و با رفرش صفحه پاک می‌شوند. برای حساب‌های دائمی و بازی آنلاین واقعی بین دو کاربر، نیاز به سرور و دیتابیس واقعی است.
+میتوانید در 30 ثانیه ثبت نام کنید ؟
       </div>
     </div>
   </div>
@@ -249,7 +253,7 @@ tr.me{background:var(--panel-2);color:var(--accent);}
           <button class="btn primary" id="btn-play" style="flex:2">شروع بازی (آفلاین · با بات)</button>
           <button class="btn" id="btn-shop" style="flex:1">فروشگاه</button>
           <button class="btn" id="btn-leaderboard" style="flex:1">جدول امتیازات</button>
-          <button class="btn" id="btn-online" style="flex:1">آنلاین (PeerJS)</button>
+          <button class="btn" id="btn-online" style="flex:1">آنلاین</button>
           <button class="btn" id="btn-3d" style="flex:1">حالت 3D</button>
         </div>
         <div class="tag hint-desktop" style="margin-top:6px">حرکت: A/D — پرش/جت‌پک: Space (نگه دار) — شلیک: کلیک چپ — تعویض سلاح: ۱-۴ — خروج: Esc</div>
@@ -302,11 +306,11 @@ tr.me{background:var(--panel-2);color:var(--accent);}
   <!-- ===================== ONLINE (PeerJS) ===================== -->
   <div class="screen" id="screen-online">
     <div class="subhead">
-      <div class="display">بازی آنلاین (PeerJS P2P)</div>
+      <div class="display">بازی آنلاین </div>
       <button class="btn small" id="online-back">بازگشت</button>
     </div>
     <div style="max-width:500px; margin:20px auto; background:var(--panel); padding:20px; border:1px solid var(--line);">
-      <div class="tag">این یک نسخهٔ آزمایشی اولیه است. برای بازی کامل نیاز به کد سینک موقعیت، گلوله و سلامت دارد.</div>
+      <div class="tag"></div>
       <div style="margin:16px 0;">
         <button class="btn primary" id="btn-host">Host (ایجاد اتاق)</button>
         <button class="btn" id="btn-join">Join با ID</button>
@@ -433,6 +437,11 @@ function mkUser(name,pass,extra){
   }, extra||{});
 }
 let currentUser = null;
+
+/* PeerJS multiplayer state */
+let peer = null;
+let hostConnections = [];
+let clientConn = null;
 
 /* =========================================================
    SCREEN NAVIGATION
@@ -597,36 +606,96 @@ function showOnlineScreen(){
   function log(msg){ 
     const d = document.createElement('div'); d.textContent = msg; logEl.appendChild(d); logEl.scrollTop = logEl.scrollHeight; 
   }
-  status.textContent = 'PeerJS آماده است (کتابخانه لود شده)';
 
-  // Basic PeerJS demo (full game sync needs more work)
+  if(!window.Peer){
+    status.textContent = 'PeerJS لود نشد! اینترنت را چک کنید.';
+    return;
+  }
+  status.textContent = 'PeerJS آماده است — هاست کن یا جوین شو';
+
+  // Reset previous session
+  if(peer){ try{ peer.destroy(); }catch(e){} }
+  peer = null;
+  hostConnections = [];
+  clientConn = null;
+
+  // ================== HOST (supports MULTIPLE players + Copy button) ==================
   document.getElementById('btn-host').onclick = () => {
-    if(!window.Peer){ status.textContent = 'PeerJS لود نشده'; return; }
+    if(peer) { try{ peer.destroy(); }catch(e){} }
+    hostConnections = [];
     peer = new Peer();
-    peer.on('open', id => {
-      status.textContent = 'اتاق ساخته شد. ID تو: ' + id;
-      log('شما Host هستید. ID را به دوستتان بدهید.');
+
+    peer.on('open', roomId => {
+      status.innerHTML = `
+        <div>اتاق ساخته شد ✅</div>
+        <div style="margin:12px 0; font-family:monospace; font-size:15px; color:#c6ff5e;">
+          ID اتاق: <b id="room-id-text">${roomId}</b>
+        </div>
+      `;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn small primary';
+      copyBtn.style.marginTop = '8px';
+      copyBtn.innerHTML = '📋 کپی ID اتاق';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(roomId).then(() => {
+          const origText = copyBtn.innerHTML;
+          copyBtn.innerHTML = '✅ کپی شد!';
+          setTimeout(() => { copyBtn.innerHTML = origText; }, 1600);
+        }).catch(() => {
+          const input = document.createElement('input');
+          input.value = roomId;
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand('copy');
+          document.body.removeChild(input);
+          copyBtn.innerHTML = '✅ کپی شد!';
+          setTimeout(() => { copyBtn.innerHTML = '📋 کپی ID اتاق'; }, 1600);
+        });
+      };
+      status.appendChild(copyBtn);
+
+      log('شما Host هستید. دوستان می‌تونن با این ID جوین بشن.');
+      log('تا چند نفر می‌تونن وصل بشن (P2P).');
     });
+
     peer.on('connection', c => {
-      conn = c;
-      log('بازیکن وصل شد!');
-      conn.on('data', data => log('دریافت: ' + data));
+      hostConnections.push(c);
+      const playerNum = hostConnections.length;
+      log('بازیکن #' + playerNum + ' وصل شد! (مجموع: ' + playerNum + ')');
+
+      c.on('data', data => log('از بازیکن #' + playerNum + ': ' + data));
+      c.on('close', () => log('بازیکن #' + playerNum + ' قطع شد.'));
+
+      setTimeout(() => { 
+        try { c.send('خوش آمدید به SCRAP DUEL آنلاین!'); } catch(e){} 
+      }, 400);
     });
+
+    peer.on('error', err => log('خطا در هاست: ' + err.type));
   };
 
+  // ================== JOIN ==================
   document.getElementById('btn-join').onclick = () => {
-    if(!window.Peer){ status.textContent = 'PeerJS لود نشده'; return; }
     const targetId = document.getElementById('peer-id-input').value.trim();
-    if(!targetId) return alert('ID را وارد کن');
+    if(!targetId) return alert('ID اتاق هاست را وارد کن');
+
+    if(clientConn) { try{ clientConn.close(); }catch(e){} }
+
     peer = new Peer();
     peer.on('open', () => {
-      conn = peer.connect(targetId);
-      conn.on('open', () => {
-        status.textContent = 'وصل شدید!';
-        log('وصل شدید به هاست');
-        conn.send('سلام از کلاینت!');
+      clientConn = peer.connect(targetId);
+
+      clientConn.on('open', () => {
+        status.textContent = 'وصل شدید به هاست!';
+        log('با موفقیت به اتاق جوین شدی');
+        clientConn.send('سلام! من وارد شدم.');
       });
-      conn.on('data', data => log('دریافت: ' + data));
+
+      clientConn.on('data', data => log('پیام از هاست: ' + data));
+      clientConn.on('close', () => log('اتصال به هاست قطع شد.'));
+
+      peer.on('error', err => log('خطا: ' + err.type));
     });
   };
 }
